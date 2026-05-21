@@ -206,7 +206,8 @@ select:focus{border-color:#1d1d1f}
 // ── PIN ───────────────────────────────────────────────────
 // !! CHANGE THIS TO YOUR DESIRED PIN !!
 const CORRECT_PIN = '__PIN__';
-const SESSION_KEY = 'fin_auth';
+let _unlocked = false;
+
 
 let pinEntry = '';
 
@@ -234,7 +235,7 @@ function updateDots() {
 
 function checkPin() {
   if (pinEntry === CORRECT_PIN) {
-    sessionStorage.setItem(SESSION_KEY, '1');
+    _unlocked = true;
     document.getElementById('pinScreen').classList.add('hidden');
     document.getElementById('app').style.display = 'block';
     boot();
@@ -249,11 +250,7 @@ function checkPin() {
   }
 }
 
-// Skip PIN if already authenticated this session
-if (sessionStorage.getItem(SESSION_KEY) === '1') {
-  document.getElementById('pinScreen').classList.add('hidden');
-  document.getElementById('app').style.display = 'block';
-}
+
 
 // ── PASTE YOUR APPS SCRIPT DEPLOYMENT URL HERE ───────────
 const GAS_URL = 'https://script.google.com/macros/s/AKfycbwWpXsgpOW0AFj-RQhTwzPeAACNScqfeKGsZW8QAbuDshnVIEi9Zkf3AeutTTraBAV1fg/exec';
@@ -311,7 +308,7 @@ async function boot() {
 }
 
 // Only boot if already past PIN
-if (sessionStorage.getItem(SESSION_KEY) === '1') boot();
+if (_unlocked) boot();
 
 document.getElementById('monthSelect').addEventListener('change', function () {
   currentMonth = this.value;
