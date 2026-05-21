@@ -20,9 +20,10 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Inject PIN
+      - name: Inject PIN and cache bust
         run: |
           sed -i "s/__PIN__/${{ secrets.FINANCE_PIN }}/g" index.html
+          sed -i "s/__CACHEBUST__/$(date +%s)/g" sw.js
 
       - name: Setup Pages
         uses: actions/configure-pages@v5
