@@ -12,11 +12,41 @@
 <link rel="manifest" href="/personal-finance-entry/manifest.json">
 <link rel="apple-touch-icon" href="icon-192.png">
 
-  
 <title>Finance Entry</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f5f5f7;color:#1d1d1f;font-size:15px;min-height:100vh}
+
+/* ── PIN SCREEN ───────────────────────────────────────── */
+#pinScreen{
+  position:fixed;inset:0;background:#f5f5f7;z-index:1000;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:24px;
+}
+#pinScreen.hidden{display:none}
+.pin-logo{width:56px;height:56px;background:#1d1d1f;border-radius:16px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:26px}
+.pin-title{font-size:20px;font-weight:700;letter-spacing:-.4px}
+.pin-sub{font-size:13px;color:#888;margin-top:-16px}
+.pin-dots{display:flex;gap:14px}
+.pin-dot{width:14px;height:14px;border-radius:50%;background:#e0e0e0;transition:background .15s}
+.pin-dot.filled{background:#1d1d1f}
+.pin-dot.err{background:#ff3b30}
+.pin-pad{display:grid;grid-template-columns:repeat(3,72px);gap:10px}
+.pin-key{
+  width:72px;height:72px;border-radius:50%;border:none;
+  background:#fff;font-size:22px;font-weight:500;color:#1d1d1f;
+  cursor:pointer;border:0.5px solid #e0e0e0;
+  transition:background .1s,transform .08s;
+  display:flex;align-items:center;justify-content:center;
+  -webkit-tap-highlight-color:transparent;
+}
+.pin-key:active{background:#e8e8e8;transform:scale(.94)}
+.pin-key.del{font-size:18px;color:#888}
+.pin-key.empty{background:transparent;border-color:transparent;pointer-events:none}
+.pin-err{font-size:13px;color:#ff3b30;min-height:16px;text-align:center}
+
+/* ── APP (hidden until PIN passed) ───────────────────── */
+#app{display:none}
+#app.visible{display:block}
 
 header{background:#fff;border-bottom:0.5px solid #e0e0e0;padding:14px 16px;display:flex;align-items:center;gap:10px;position:sticky;top:0;z-index:100}
 .logo{width:28px;height:28px;background:#1d1d1f;border-radius:8px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:14px}
@@ -100,55 +130,137 @@ select:focus{border-color:#1d1d1f}
 </head>
 <body>
 
-<div id="overlay"><div class="spin"></div><span id="overlayTxt">Loading…</span></div>
-<div id="toastWrap"></div>
-
-<header>
-  <div class="logo">₹</div>
-  <h1>Finance</h1>
-  <span class="sub" id="headerMonth"></span>
-</header>
-
-<div id="topbar">
-  <select id="monthSelect"></select>
-  <button class="pill-btn primary" id="newMonthBtn">+ Month</button>
-  <div id="topStatus" style="font-size:12px;color:#34c759;margin-left:4px"></div>
+<!-- ── PIN SCREEN ──────────────────────────────────────────── -->
+<div id="pinScreen">
+  <div class="pin-logo">₹</div>
+  <div class="pin-title">Finance</div>
+  <div class="pin-sub">Enter your PIN to continue</div>
+  <div class="pin-dots">
+    <div class="pin-dot" id="d0"></div>
+    <div class="pin-dot" id="d1"></div>
+    <div class="pin-dot" id="d2"></div>
+    <div class="pin-dot" id="d3"></div>
+  </div>
+  <div class="pin-err" id="pinErr"></div>
+  <div class="pin-pad">
+    <button class="pin-key" onclick="pinKey('1')">1</button>
+    <button class="pin-key" onclick="pinKey('2')">2</button>
+    <button class="pin-key" onclick="pinKey('3')">3</button>
+    <button class="pin-key" onclick="pinKey('4')">4</button>
+    <button class="pin-key" onclick="pinKey('5')">5</button>
+    <button class="pin-key" onclick="pinKey('6')">6</button>
+    <button class="pin-key" onclick="pinKey('7')">7</button>
+    <button class="pin-key" onclick="pinKey('8')">8</button>
+    <button class="pin-key" onclick="pinKey('9')">9</button>
+    <button class="pin-key empty"></button>
+    <button class="pin-key" onclick="pinKey('0')">0</button>
+    <button class="pin-key del" onclick="pinDel()">⌫</button>
+  </div>
 </div>
 
-<div id="main">
-  <div class="card">
-    <div class="card-header">New entry</div>
-    <div id="catWrap">
-      <input id="catInput" type="text" placeholder="Category — type to search…" autocomplete="off">
-      <div id="dropdown"></div>
-    </div>
-    <div id="exprWrap">
-      <div id="exprRow">
-        <input id="exprInput" type="text" placeholder="e.g. 120+50+30" autocomplete="off" disabled>
-        <button id="addBtn" disabled>Add</button>
-      </div>
-      <div id="exprPreview"></div>
-      <div id="statusMsg"></div>
-    </div>
+<!-- ── APP ────────────────────────────────────────────────── -->
+<div id="app">
+  <div id="overlay"><div class="spin"></div><span id="overlayTxt">Loading…</span></div>
+  <div id="toastWrap"></div>
+
+  <header>
+    <div class="logo">₹</div>
+    <h1>Finance</h1>
+    <span class="sub" id="headerMonth"></span>
+  </header>
+
+  <div id="topbar">
+    <select id="monthSelect"></select>
+    <button class="pill-btn primary" id="newMonthBtn">+ Month</button>
+    <div id="topStatus" style="font-size:12px;color:#34c759;margin-left:4px"></div>
   </div>
 
-  <div class="card" id="logCard">
-    <div class="log-header">
-      <span class="log-title" id="logTitle">Log</span>
-      <span class="log-sheet-total" id="logTotal"></span>
+  <div id="main">
+    <div class="card">
+      <div class="card-header">New entry</div>
+      <div id="catWrap">
+        <input id="catInput" type="text" placeholder="Category — type to search…" autocomplete="off">
+        <div id="dropdown"></div>
+      </div>
+      <div id="exprWrap">
+        <div id="exprRow">
+          <input id="exprInput" type="text" placeholder="e.g. 120+50+30" autocomplete="off" disabled>
+          <button id="addBtn" disabled>Add</button>
+        </div>
+        <div id="exprPreview"></div>
+        <div id="statusMsg"></div>
+      </div>
     </div>
-    <div id="logBody"><div id="logEmpty">Select a category to see its log.</div></div>
+
+    <div class="card" id="logCard">
+      <div class="log-header">
+        <span class="log-title" id="logTitle">Log</span>
+        <span class="log-sheet-total" id="logTotal"></span>
+      </div>
+      <div id="logBody"><div id="logEmpty">Select a category to see its log.</div></div>
+    </div>
   </div>
 </div>
 
 <script>
-// ── PASTE YOUR APPS SCRIPT DEPLOYMENT URL HERE ────────────
+// ── PIN ───────────────────────────────────────────────────
+// !! CHANGE THIS TO YOUR DESIRED PIN !!
+const CORRECT_PIN = '__PIN__';
+const SESSION_KEY = 'fin_auth';
+
+let pinEntry = '';
+
+function pinKey(digit) {
+  if (pinEntry.length >= 4) return;
+  pinEntry += digit;
+  updateDots();
+  if (pinEntry.length === 4) checkPin();
+}
+
+function pinDel() {
+  pinEntry = pinEntry.slice(0, -1);
+  document.getElementById('pinErr').textContent = '';
+  dots().forEach(d => d.classList.remove('err'));
+  updateDots();
+}
+
+function dots() {
+  return [0,1,2,3].map(i => document.getElementById('d' + i));
+}
+
+function updateDots() {
+  dots().forEach((d, i) => d.classList.toggle('filled', i < pinEntry.length));
+}
+
+function checkPin() {
+  if (pinEntry === CORRECT_PIN) {
+    sessionStorage.setItem(SESSION_KEY, '1');
+    document.getElementById('pinScreen').classList.add('hidden');
+    document.getElementById('app').style.display = 'block';
+    boot();
+  } else {
+    dots().forEach(d => { d.classList.remove('filled'); d.classList.add('err'); });
+    document.getElementById('pinErr').textContent = 'Incorrect PIN';
+    setTimeout(() => {
+      dots().forEach(d => d.classList.remove('err'));
+      document.getElementById('pinErr').textContent = '';
+      pinEntry = '';
+    }, 900);
+  }
+}
+
+// Skip PIN if already authenticated this session
+if (sessionStorage.getItem(SESSION_KEY) === '1') {
+  document.getElementById('pinScreen').classList.add('hidden');
+  document.getElementById('app').style.display = 'block';
+}
+
+// ── PASTE YOUR APPS SCRIPT DEPLOYMENT URL HERE ───────────
 const GAS_URL = 'https://script.google.com/macros/s/AKfycbwWpXsgpOW0AFj-RQhTwzPeAACNScqfeKGsZW8QAbuDshnVIEi9Zkf3AeutTTraBAV1fg/exec';
 // ─────────────────────────────────────────────────────────
 
 let categories=[], filtered=[], ddActive=-1, selCategory=null, logRowIndex=null, editingIndex=-1, currentMonth='';
 
-// ── API helper — all server calls go through here ─────────
 async function api(fn, ...args) {
   const res = await fetch(GAS_URL, {
     method: 'POST',
@@ -159,13 +271,11 @@ async function api(fn, ...args) {
   return data.result;
 }
 
-// ── Overlay ───────────────────────────────────────────────
 function overlay(msg) {
   document.getElementById('overlayTxt').textContent = msg || '';
   document.getElementById('overlay').classList.toggle('show', !!msg);
 }
 
-// ── Toast ─────────────────────────────────────────────────
 function toast(msg, isErr) {
   const w = document.getElementById('toastWrap');
   const t = document.createElement('div');
@@ -176,13 +286,11 @@ function toast(msg, isErr) {
   setTimeout(() => { t.classList.remove('show'); setTimeout(() => t.remove(), 300); }, 2800);
 }
 
-// ── Boot ──────────────────────────────────────────────────
 async function boot() {
   overlay('Loading…');
   try {
     const [cats, cols] = await Promise.all([api('getCategories'), api('getMonthColumns')]);
     categories = cats;
-
     const sel = document.getElementById('monthSelect');
     sel.innerHTML = '';
     cols.forEach(c => {
@@ -201,9 +309,10 @@ async function boot() {
     toast('Failed to load: ' + e.message, true);
   }
 }
-boot();
 
-// ── Month select ──────────────────────────────────────────
+// Only boot if already past PIN
+if (sessionStorage.getItem(SESSION_KEY) === '1') boot();
+
 document.getElementById('monthSelect').addEventListener('change', function () {
   currentMonth = this.value;
   document.getElementById('headerMonth').textContent = currentMonth;
@@ -235,7 +344,6 @@ document.getElementById('newMonthBtn').addEventListener('click', async function 
   }
 });
 
-// ── Category autocomplete ─────────────────────────────────
 const catInput  = document.getElementById('catInput');
 const dropdown  = document.getElementById('dropdown');
 
@@ -274,10 +382,9 @@ function selectCategory(cat) {
   document.getElementById('exprInput').focus();
 }
 
-// ── Expression input ──────────────────────────────────────
-const exprInput  = document.getElementById('exprInput');
+const exprInput   = document.getElementById('exprInput');
 const exprPreview = document.getElementById('exprPreview');
-const addBtn     = document.getElementById('addBtn');
+const addBtn      = document.getElementById('addBtn');
 
 function enableExpr()  { exprInput.disabled = false; addBtn.disabled = false; }
 function disableExpr() { exprInput.disabled = true; addBtn.disabled = true; exprInput.value = ''; exprPreview.textContent = ''; exprInput.className = ''; }
@@ -313,7 +420,6 @@ async function doAdd() {
   }
 }
 
-// ── Log ───────────────────────────────────────────────────
 async function loadLog() {
   if (!selCategory || !currentMonth) return;
   overlay('Loading…');
@@ -394,7 +500,6 @@ async function delEntry(i) {
   }
 }
 
-// ── Helpers ───────────────────────────────────────────────
 function evalExpr(expr) {
   const c = String(expr).replace(/\s/g, '');
   if (!/^[\d.\+\-\*\/]+$/.test(c)) return null;
@@ -406,7 +511,6 @@ function evalExpr(expr) {
 function fmt(n) { return Number(n).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
 function esc(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 
-// Register service worker
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
     navigator.serviceWorker.register('/personal-finance-entry/sw.js').catch(err => {
