@@ -1,4 +1,4 @@
-const CACHE = "finance-v1";
+const CACHE = "finance-__CACHEBUST__";
 const PRECACHE = [
   "/personal-finance-entry/",
   "/personal-finance-entry/index.html",
@@ -22,12 +22,10 @@ self.addEventListener("activate", e => {
 });
 
 self.addEventListener("fetch", e => {
-  // Always go network-first for GAS API calls
   if (e.request.url.includes("script.google.com")) {
     e.respondWith(fetch(e.request));
     return;
   }
-  // Cache-first for everything else (your static assets)
   e.respondWith(
     caches.match(e.request).then(cached => cached || fetch(e.request).then(res => {
       const clone = res.clone();
