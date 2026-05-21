@@ -1,5 +1,9 @@
 const CACHE = "finance-v1";
-const PRECACHE = ["/", "/index.html", "/manifest.json"];
+const PRECACHE = [
+  "/personal-finance-entry/",
+  "/personal-finance-entry/index.html",
+  "/personal-finance-entry/manifest.json"
+];
 
 self.addEventListener("install", e => {
   e.waitUntil(
