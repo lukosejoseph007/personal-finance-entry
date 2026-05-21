@@ -23,6 +23,7 @@ jobs:
       - name: Inject PIN and cache bust
         run: |
           sed -i "s/__PIN__/${{ secrets.FINANCE_PIN }}/g" index.html
+          sed -i "s|__GAS_URL__|${{ secrets.GAS_URL }}|g" index.html
           sed -i "s/__CACHEBUST__/$(date +%s)/g" sw.js
 
       - name: Setup Pages
