@@ -238,7 +238,9 @@ function checkPin() {
     _unlocked = true;
     document.getElementById('pinScreen').classList.add('hidden');
     document.getElementById('app').style.display = 'block';
-    boot();
+    // Boot already ran in background; this resolves instantly if done, or shows spinner if still loading
+    if (!categories.length) overlay('Loading…');
+    boot().then(() => overlay(''));
   } else {
     dots().forEach(d => { d.classList.remove('filled'); d.classList.add('err'); });
     document.getElementById('pinErr').textContent = 'Incorrect PIN';
@@ -257,6 +259,9 @@ const GAS_URL = 'https://script.google.com/macros/s/AKfycbwWpXsgpOW0AFj-RQhTwzPe
 // ─────────────────────────────────────────────────────────
 
 let categories=[], filtered=[], ddActive=-1, selCategory=null, logRowIndex=null, editingIndex=-1, currentMonth='';
+const _logCache = {}; // { 'monthLabel:rowIndex': { exprs, sheetValue } }
+function _cacheKey(month, row) { return month + ':' + row; }
+function _invalidateCache(month, row) { delete _logCache[_cacheKey(month, row)]; }
 
 async function api(fn, ...args) {
   const res = await fetch(GAS_URL, {
@@ -283,32 +288,43 @@ function toast(msg, isErr) {
   setTimeout(() => { t.classList.remove('show'); setTimeout(() => t.remove(), 300); }, 2800);
 }
 
+let _bootPromise = null;
+
 async function boot() {
-  overlay('Loading…');
-  try {
-    const [cats, cols] = await Promise.all([api('getCategories'), api('getMonthColumns')]);
-    categories = cats;
-    const sel = document.getElementById('monthSelect');
-    sel.innerHTML = '';
-    cols.forEach(c => {
-      const o = document.createElement('option');
-      o.value = c.label; o.textContent = c.label;
-      sel.appendChild(o);
-    });
-    if (cols.length) {
-      sel.selectedIndex = cols.length - 1;
-      currentMonth = cols[cols.length - 1].label;
-      document.getElementById('headerMonth').textContent = currentMonth;
+  // If already booting or booted, return same promise
+  if (_bootPromise) return _bootPromise;
+  _bootPromise = (async () => {
+    // Only show overlay if app is already visible (re-boot scenario)
+    if (_unlocked) overlay('Loading…');
+    try {
+      const [cats, cols] = await Promise.all([api('getCategories'), api('getMonthColumns')]);
+      categories = cats;
+      const sel = document.getElementById('monthSelect');
+      sel.innerHTML = '';
+      cols.forEach(c => {
+        const o = document.createElement('option');
+        o.value = c.label; o.textContent = c.label;
+        sel.appendChild(o);
+      });
+      if (cols.length) {
+        sel.selectedIndex = cols.length - 1;
+        currentMonth = cols[cols.length - 1].label;
+        document.getElementById('headerMonth').textContent = currentMonth;
+      }
+      if (_unlocked) overlay('');
+    } catch (e) {
+      if (_unlocked) {
+        overlay('');
+        toast('Failed to load: ' + e.message, true);
+      }
+      _bootPromise = null; // allow retry
     }
-    overlay('');
-  } catch (e) {
-    overlay('');
-    toast('Failed to load: ' + e.message, true);
-  }
+  })();
+  return _bootPromise;
 }
 
-// Only boot if already past PIN
-if (_unlocked) boot();
+// Boot immediately in background so data is ready before PIN is entered
+boot();
 
 document.getElementById('monthSelect').addEventListener('change', function () {
   currentMonth = this.value;
@@ -404,6 +420,7 @@ async function doAdd() {
   overlay('Saving…');
   try {
     const res = await api('submitEntry', currentMonth, selCategory.rowIndex, expr);
+    _invalidateCache(currentMonth, selCategory.rowIndex);
     overlay('');
     toast('Added to ' + selCategory.label);
     exprInput.value = ''; exprInput.className = ''; exprPreview.textContent = '';
@@ -417,11 +434,18 @@ async function doAdd() {
   }
 }
 
-async function loadLog() {
+async function loadLog(forceRefresh) {
   if (!selCategory || !currentMonth) return;
+  const key = _cacheKey(currentMonth, selCategory.rowIndex);
+  // Serve from cache instantly if available
+  if (!forceRefresh && _logCache[key]) {
+    renderLog(_logCache[key].exprs, _logCache[key].sheetValue);
+    return;
+  }
   overlay('Loading…');
   try {
     const res = await api('getCategoryLog', currentMonth, selCategory.rowIndex);
+    _logCache[key] = { exprs: res.exprs, sheetValue: res.sheetValue };
     overlay('');
     renderLog(res.exprs, res.sheetValue);
   } catch (e) {
@@ -477,6 +501,7 @@ async function saveEdit(i) {
   overlay('Saving…');
   try {
     const res = await api('editLogEntry', currentMonth, rowIdx, i, newExpr);
+    _invalidateCache(currentMonth, rowIdx);
     overlay(''); editingIndex = -1;
     toast('Entry updated'); renderLog(res.exprs, res.newSheetValue);
   } catch (e) {
@@ -490,6 +515,7 @@ async function delEntry(i) {
   overlay('Deleting…');
   try {
     const res = await api('deleteLogEntry', currentMonth, rowIdx, i);
+    _invalidateCache(currentMonth, rowIdx);
     overlay('');
     toast('Entry deleted'); renderLog(res.exprs, res.newSheetValue);
   } catch (e) {
