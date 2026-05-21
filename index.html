@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Finance Entry</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f5f5f7;color:#1d1d1f;font-size:15px;min-height:100vh}
+
+header{background:#fff;border-bottom:0.5px solid #e0e0e0;padding:14px 16px;display:flex;align-items:center;gap:10px;position:sticky;top:0;z-index:100}
+.logo{width:28px;height:28px;background:#1d1d1f;border-radius:8px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:14px}
+header h1{font-size:16px;font-weight:600;letter-spacing:-.3px}
+header .sub{font-size:12px;color:#888;margin-left:auto;font-weight:500}
+
+#topbar{background:#fff;border-bottom:0.5px solid #e0e0e0;padding:10px 16px;display:flex;align-items:center;gap:8px}
+select{border:0.5px solid #d0d0d0;border-radius:10px;padding:7px 10px;font-size:14px;background:#f5f5f7;color:#1d1d1f;outline:none;font-weight:500;-webkit-appearance:none;appearance:none;padding-right:28px;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23888' stroke-width='2'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 8px center}
+select:focus{border-color:#1d1d1f}
+#monthSelect{min-width:120px}
+
+.pill-btn{border:0.5px solid #d0d0d0;border-radius:20px;padding:6px 14px;font-size:13px;font-weight:500;background:#fff;color:#1d1d1f;cursor:pointer;white-space:nowrap;transition:background .15s}
+.pill-btn:hover{background:#f0f0f0}
+.pill-btn.primary{background:#1d1d1f;color:#fff;border-color:#1d1d1f}
+.pill-btn.primary:hover{background:#333}
+.pill-btn:disabled{opacity:.4;cursor:default}
+
+#main{padding:16px;display:flex;flex-direction:column;gap:12px;max-width:480px;margin:0 auto;padding-bottom:30px}
+
+.card{background:#fff;border-radius:16px;border:0.5px solid #e0e0e0;overflow:visible}
+.card-header{padding:14px 16px 0;font-size:11px;font-weight:700;letter-spacing:.8px;color:#888;text-transform:uppercase}
+
+#catWrap{padding:10px 16px 14px;position:relative}
+#catInput{width:100%;border:0.5px solid #d0d0d0;border-radius:12px;padding:11px 14px;font-size:15px;background:#f5f5f7;outline:none;transition:border-color .15s,background .15s;font-weight:500}
+#catInput:focus{border-color:#1d1d1f;background:#fff}
+#catInput.selected{border-color:#34c759;background:#f0fdf4}
+#dropdown{display:none;position:absolute;top:calc(100% - 4px);left:16px;right:16px;background:#fff;border:0.5px solid #d0d0d0;border-radius:14px;box-shadow:0 8px 30px rgba(0,0,0,.10);max-height:200px;overflow-y:auto;z-index:200}
+#dropdown.open{display:block}
+.dd-item{padding:11px 14px;cursor:pointer;font-size:14px;font-weight:500;border-bottom:0.5px solid #f0f0f0}
+.dd-item:last-child{border-bottom:none}
+.dd-item.active{background:#f0f0f0}
+
+#exprWrap{padding:0 16px 14px;display:flex;flex-direction:column;gap:8px}
+#exprRow{display:flex;gap:8px}
+#exprInput{flex:1;border:0.5px solid #d0d0d0;border-radius:12px;padding:11px 14px;font-size:16px;font-family:'SF Mono',Monaco,monospace;background:#f5f5f7;outline:none;transition:border-color .15s}
+#exprInput:focus{border-color:#1d1d1f;background:#fff}
+#exprInput:disabled{opacity:.4}
+#exprInput.ok{border-color:#34c759;background:#f0fdf4}
+#exprInput.err{border-color:#ff3b30}
+#exprPreview{font-size:13px;color:#34c759;font-family:'SF Mono',Monaco,monospace;min-height:16px;padding:0 2px}
+#addBtn{background:#1d1d1f;color:#fff;border:none;border-radius:12px;padding:0 20px;font-size:15px;font-weight:600;cursor:pointer;white-space:nowrap;transition:background .15s}
+#addBtn:hover{background:#333}
+#addBtn:disabled{background:#ccc;cursor:default}
+
+#statusMsg{font-size:13px;min-height:16px;padding:0 2px}
+#statusMsg.ok{color:#34c759}
+#statusMsg.err{color:#ff3b30}
+
+#logCard{background:#fff;border-radius:16px;border:0.5px solid #e0e0e0}
+.log-header{padding:14px 16px 10px;display:flex;align-items:center;justify-content:space-between}
+.log-title{font-size:11px;font-weight:700;letter-spacing:.8px;color:#888;text-transform:uppercase}
+.log-sheet-total{font-size:13px;font-weight:600;color:#1d1d1f}
+
+#logBody{padding:0 16px 14px;display:flex;flex-direction:column;gap:6px}
+#logEmpty{font-size:14px;color:#aaa;text-align:center;padding:20px 0}
+
+.log-entry{background:#f5f5f7;border-radius:12px;padding:10px 12px;display:flex;align-items:center;gap:8px}
+.log-expr{flex:1;font-family:'SF Mono',Monaco,monospace;font-size:14px;color:#1d1d1f;word-break:break-all}
+.log-result{font-size:13px;color:#34c759;font-weight:600;font-family:'SF Mono',Monaco,monospace;white-space:nowrap}
+.log-actions{display:flex;gap:4px;flex-shrink:0}
+.icon-btn{width:30px;height:30px;border:none;background:transparent;border-radius:8px;cursor:pointer;display:flex;align-items:center;justify-content:center;color:#888;font-size:16px;transition:background .15s}
+.icon-btn:hover{background:#e8e8e8;color:#1d1d1f}
+.icon-btn.del:hover{color:#ff3b30;background:#fff0f0}
+
+.log-edit-wrap{flex:1;display:flex;flex-direction:column;gap:6px}
+.log-edit-row{display:flex;gap:6px}
+.log-edit-row input{flex:1;border:1px solid #1d1d1f;border-radius:8px;padding:6px 10px;font-family:'SF Mono',Monaco,monospace;font-size:14px;outline:none;min-width:0}
+.save-btn{background:#1d1d1f;color:#fff;border:none;border-radius:8px;padding:6px 12px;font-size:13px;font-weight:600;cursor:pointer}
+.cancel-btn{background:transparent;color:#888;border:0.5px solid #d0d0d0;border-radius:8px;padding:6px 10px;font-size:13px;cursor:pointer}
+
+#overlay{display:none;position:fixed;inset:0;background:rgba(255,255,255,.75);z-index:300;align-items:center;justify-content:center;flex-direction:column;gap:10px;font-size:14px;color:#888}
+#overlay.show{display:flex}
+.spin{width:24px;height:24px;border:2.5px solid #e0e0e0;border-top-color:#1d1d1f;border-radius:50%;animation:spin .7s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+#toastWrap{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);z-index:400;pointer-events:none;display:flex;flex-direction:column;align-items:center;gap:8px}
+.toast{background:#1d1d1f;color:#fff;font-size:13px;font-weight:500;padding:10px 18px;border-radius:20px;opacity:0;transform:translateY(8px);transition:opacity .2s,transform .2s;white-space:nowrap}
+.toast.show{opacity:1;transform:translateY(0)}
+.toast.err{background:#ff3b30}
+</style>
+</head>
+<body>
+
+<div id="overlay"><div class="spin"></div><span id="overlayTxt">Loading…</span></div>
+<div id="toastWrap"></div>
+
+<header>
+  <div class="logo">₹</div>
+  <h1>Finance</h1>
+  <span class="sub" id="headerMonth"></span>
+</header>
+
+<div id="topbar">
+  <select id="monthSelect"></select>
+  <button class="pill-btn primary" id="newMonthBtn">+ Month</button>
+  <div id="topStatus" style="font-size:12px;color:#34c759;margin-left:4px"></div>
+</div>
+
+<div id="main">
+  <div class="card">
+    <div class="card-header">New entry</div>
+    <div id="catWrap">
+      <input id="catInput" type="text" placeholder="Category — type to search…" autocomplete="off">
+      <div id="dropdown"></div>
+    </div>
+    <div id="exprWrap">
+      <div id="exprRow">
+        <input id="exprInput" type="text" placeholder="e.g. 120+50+30" autocomplete="off" disabled>
+        <button id="addBtn" disabled>Add</button>
+      </div>
+      <div id="exprPreview"></div>
+      <div id="statusMsg"></div>
+    </div>
+  </div>
+
+  <div class="card" id="logCard">
+    <div class="log-header">
+      <span class="log-title" id="logTitle">Log</span>
+      <span class="log-sheet-total" id="logTotal"></span>
+    </div>
+    <div id="logBody"><div id="logEmpty">Select a category to see its log.</div></div>
+  </div>
+</div>
+
+<script>
+// ── PASTE YOUR APPS SCRIPT DEPLOYMENT URL HERE ────────────
+const GAS_URL = 'https://script.google.com/macros/s/YOUR_DEPLOYMENT_ID/exec';
+// ─────────────────────────────────────────────────────────
+
+let categories=[], filtered=[], ddActive=-1, selCategory=null, logRowIndex=null, editingIndex=-1, currentMonth='';
+
+// ── API helper — all server calls go through here ─────────
+async function api(fn, ...args) {
+  const res = await fetch(GAS_URL, {
+    method: 'POST',
+    body: JSON.stringify({ fn, args }),
+  });
+  const data = await res.json();
+  if (data.error) throw new Error(data.error);
+  return data.result;
+}
+
+// ── Overlay ───────────────────────────────────────────────
+function overlay(msg) {
+  document.getElementById('overlayTxt').textContent = msg || '';
+  document.getElementById('overlay').classList.toggle('show', !!msg);
+}
+
+// ── Toast ─────────────────────────────────────────────────
+function toast(msg, isErr) {
+  const w = document.getElementById('toastWrap');
+  const t = document.createElement('div');
+  t.className = 'toast' + (isErr ? ' err' : '');
+  t.textContent = msg;
+  w.appendChild(t);
+  requestAnimationFrame(() => requestAnimationFrame(() => t.classList.add('show')));
+  setTimeout(() => { t.classList.remove('show'); setTimeout(() => t.remove(), 300); }, 2800);
+}
+
+// ── Boot ──────────────────────────────────────────────────
+async function boot() {
+  overlay('Loading…');
+  try {
+    const [cats, cols] = await Promise.all([api('getCategories'), api('getMonthColumns')]);
+    categories = cats;
+
+    const sel = document.getElementById('monthSelect');
+    sel.innerHTML = '';
+    cols.forEach(c => {
+      const o = document.createElement('option');
+      o.value = c.label; o.textContent = c.label;
+      sel.appendChild(o);
+    });
+    if (cols.length) {
+      sel.selectedIndex = cols.length - 1;
+      currentMonth = cols[cols.length - 1].label;
+      document.getElementById('headerMonth').textContent = currentMonth;
+    }
+    overlay('');
+  } catch (e) {
+    overlay('');
+    toast('Failed to load: ' + e.message, true);
+  }
+}
+boot();
+
+// ── Month select ──────────────────────────────────────────
+document.getElementById('monthSelect').addEventListener('change', function () {
+  currentMonth = this.value;
+  document.getElementById('headerMonth').textContent = currentMonth;
+  if (selCategory) loadLog();
+});
+
+document.getElementById('newMonthBtn').addEventListener('click', async function () {
+  const label = prompt("New month label (e.g. Apr '26):");
+  if (!label || !label.trim()) return;
+  const trimmed = label.trim();
+  overlay('Creating…');
+  try {
+    await api('ensureMonthColumn', trimmed);
+    overlay('');
+    const sel = document.getElementById('monthSelect');
+    if (![...sel.options].some(o => o.value === trimmed)) {
+      const o = document.createElement('option');
+      o.value = trimmed; o.textContent = trimmed;
+      sel.appendChild(o);
+    }
+    sel.value = trimmed;
+    currentMonth = trimmed;
+    document.getElementById('headerMonth').textContent = trimmed;
+    toast(trimmed + ' created');
+    if (selCategory) loadLog();
+  } catch (e) {
+    overlay('');
+    toast(e.message, true);
+  }
+});
+
+// ── Category autocomplete ─────────────────────────────────
+const catInput  = document.getElementById('catInput');
+const dropdown  = document.getElementById('dropdown');
+
+catInput.addEventListener('input', function () {
+  selCategory = null; catInput.classList.remove('selected'); disableExpr();
+  const q = this.value.trim().toLowerCase();
+  filtered = q ? categories.filter(c => c.label.toLowerCase().includes(q)) : categories;
+  ddActive = filtered.length ? 0 : -1;
+  renderDropdown();
+});
+catInput.addEventListener('focus', function () {
+  if (!selCategory) { filtered = categories; ddActive = 0; renderDropdown(); }
+});
+catInput.addEventListener('keydown', function (e) {
+  if (!dropdown.classList.contains('open')) return;
+  if (e.key === 'ArrowDown') { e.preventDefault(); ddActive = Math.min(ddActive + 1, filtered.length - 1); renderDropdown(); }
+  else if (e.key === 'ArrowUp') { e.preventDefault(); ddActive = Math.max(ddActive - 1, 0); renderDropdown(); }
+  else if (e.key === 'Enter' || e.key === 'Tab') { e.preventDefault(); if (ddActive >= 0 && filtered[ddActive]) selectCategory(filtered[ddActive]); }
+  else if (e.key === 'Escape') closeDropdown();
+});
+document.addEventListener('click', e => { if (!document.getElementById('catWrap').contains(e.target)) closeDropdown(); });
+
+function renderDropdown() {
+  dropdown.innerHTML = filtered.length
+    ? filtered.map((c, i) => `<div class="dd-item${i === ddActive ? ' active' : ''}" data-i="${i}">${esc(c.label)}</div>`).join('')
+    : '<div class="dd-item" style="color:#aaa">No match</div>';
+  dropdown.querySelectorAll('.dd-item[data-i]').forEach(el => {
+    el.addEventListener('mousedown', e => { e.preventDefault(); selectCategory(filtered[+el.dataset.i]); });
+  });
+  dropdown.classList.add('open');
+}
+function closeDropdown() { dropdown.classList.remove('open'); }
+function selectCategory(cat) {
+  selCategory = cat; catInput.value = cat.label; catInput.classList.add('selected');
+  closeDropdown(); enableExpr(); loadLog();
+  document.getElementById('exprInput').focus();
+}
+
+// ── Expression input ──────────────────────────────────────
+const exprInput  = document.getElementById('exprInput');
+const exprPreview = document.getElementById('exprPreview');
+const addBtn     = document.getElementById('addBtn');
+
+function enableExpr()  { exprInput.disabled = false; addBtn.disabled = false; }
+function disableExpr() { exprInput.disabled = true; addBtn.disabled = true; exprInput.value = ''; exprPreview.textContent = ''; exprInput.className = ''; }
+
+exprInput.addEventListener('input', function () {
+  const v = this.value.trim();
+  if (!v) { this.className = ''; exprPreview.textContent = ''; return; }
+  const r = evalExpr(v);
+  if (r !== null) { this.className = 'ok'; exprPreview.textContent = '= ₹' + fmt(r); }
+  else            { this.className = 'err'; exprPreview.textContent = '✗ invalid'; }
+});
+exprInput.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); doAdd(); } });
+addBtn.addEventListener('click', doAdd);
+
+async function doAdd() {
+  if (!selCategory || !currentMonth) { toast('Select a category and month first.', true); return; }
+  const expr = exprInput.value.trim();
+  if (!expr) { toast('Enter an amount.', true); return; }
+  if (evalExpr(expr) === null) { toast('Invalid expression.', true); return; }
+  overlay('Saving…');
+  try {
+    const res = await api('submitEntry', currentMonth, selCategory.rowIndex, expr);
+    overlay('');
+    toast('Added to ' + selCategory.label);
+    exprInput.value = ''; exprInput.className = ''; exprPreview.textContent = '';
+    renderLog(res.exprs, res.newSheetValue);
+    catInput.value = ''; catInput.classList.remove('selected');
+    selCategory = null; disableExpr();
+    filtered = categories; ddActive = 0;
+    catInput.focus();
+  } catch (e) {
+    overlay(''); toast(e.message, true);
+  }
+}
+
+// ── Log ───────────────────────────────────────────────────
+async function loadLog() {
+  if (!selCategory || !currentMonth) return;
+  overlay('Loading…');
+  try {
+    const res = await api('getCategoryLog', currentMonth, selCategory.rowIndex);
+    overlay('');
+    renderLog(res.exprs, res.sheetValue);
+  } catch (e) {
+    overlay(''); toast(e.message, true);
+  }
+}
+
+function renderLog(exprs, sheetValue) {
+  if (selCategory) logRowIndex = selCategory.rowIndex;
+  const title = document.getElementById('logTitle');
+  const body  = document.getElementById('logBody');
+  const total = document.getElementById('logTotal');
+  title.textContent = selCategory ? 'Log — ' + selCategory.label : 'Log';
+  if (!exprs || !exprs.length) {
+    body.innerHTML = '<div id="logEmpty" style="font-size:14px;color:#aaa;text-align:center;padding:20px 0">No entries yet this month.</div>';
+    total.textContent = ''; return;
+  }
+  body.innerHTML = exprs.map((expr, i) => {
+    const val = evalExpr(expr);
+    return `<div class="log-entry" id="le-${i}">
+      <span class="log-expr">${esc(expr)}</span>
+      <span class="log-result">₹${val !== null ? fmt(val) : '?'}</span>
+      <div class="log-actions">
+        <button class="icon-btn" onclick="startEdit(${i},'${esc(expr)}')" title="Edit">✎</button>
+        <button class="icon-btn del" onclick="delEntry(${i})" title="Delete">✕</button>
+      </div>
+    </div>`;
+  }).join('');
+  total.textContent = '₹' + fmt(sheetValue);
+}
+
+function startEdit(i, currentExpr) {
+  if (editingIndex !== -1) loadLog();
+  editingIndex = i;
+  const row = document.getElementById('le-' + i);
+  row.innerHTML = `<div class="log-edit-wrap">
+    <div class="log-edit-row">
+      <input id="edit-inp-${i}" type="text" value="${esc(currentExpr)}">
+      <button class="save-btn" onclick="saveEdit(${i})">Save</button>
+      <button class="cancel-btn" onclick="cancelEdit()">Cancel</button>
+    </div>
+  </div>`;
+  const inp = document.getElementById('edit-inp-' + i);
+  inp.focus(); inp.select();
+  inp.addEventListener('keydown', e => { if (e.key === 'Enter') saveEdit(i); if (e.key === 'Escape') cancelEdit(); });
+}
+function cancelEdit() { editingIndex = -1; loadLog(); }
+
+async function saveEdit(i) {
+  const newExpr = document.getElementById('edit-inp-' + i)?.value.trim();
+  if (!newExpr || evalExpr(newExpr) === null) { toast('Invalid expression.', true); return; }
+  const rowIdx = logRowIndex;
+  overlay('Saving…');
+  try {
+    const res = await api('editLogEntry', currentMonth, rowIdx, i, newExpr);
+    overlay(''); editingIndex = -1;
+    toast('Entry updated'); renderLog(res.exprs, res.newSheetValue);
+  } catch (e) {
+    overlay(''); toast(e.message, true);
+  }
+}
+
+async function delEntry(i) {
+  if (!confirm('Delete this entry?')) return;
+  const rowIdx = logRowIndex;
+  overlay('Deleting…');
+  try {
+    const res = await api('deleteLogEntry', currentMonth, rowIdx, i);
+    overlay('');
+    toast('Entry deleted'); renderLog(res.exprs, res.newSheetValue);
+  } catch (e) {
+    overlay(''); toast(e.message, true);
+  }
+}
+
+// ── Helpers ───────────────────────────────────────────────
+function evalExpr(expr) {
+  const c = String(expr).replace(/\s/g, '');
+  if (!/^[\d.\+\-\*\/]+$/.test(c)) return null;
+  try {
+    const r = Function('"use strict";return(' + c + ')')();
+    return typeof r === 'number' && isFinite(r) ? Math.round(r * 100) / 100 : null;
+  } catch { return null; }
+}
+function fmt(n) { return Number(n).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
+function esc(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+</script>
+</body>
+</html>
